@@ -3,7 +3,10 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Slider } from '@/components/ui/slider';
 import Icon from '@/components/ui/icon';
+import { toast } from 'sonner';
 
 const Index = () => {
   const [activeSection, setActiveSection] = useState('home');
@@ -11,6 +14,13 @@ const Index = () => {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<number[]>([]);
   const [showResults, setShowResults] = useState(false);
+
+  const [password, setPassword] = useState('');
+  const [passwordLength, setPasswordLength] = useState(16);
+  const [includeUppercase, setIncludeUppercase] = useState(true);
+  const [includeLowercase, setIncludeLowercase] = useState(true);
+  const [includeNumbers, setIncludeNumbers] = useState(true);
+  const [includeSymbols, setIncludeSymbols] = useState(true);
 
   const sections = [
     { id: 'home', label: 'Главная', icon: 'Home' },
@@ -154,6 +164,51 @@ const Index = () => {
     return { text: 'Стоит повторить материал 📖', color: 'text-orange-400' };
   };
 
+  const generatePassword = () => {
+    let charset = '';
+    if (includeUppercase) charset += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    if (includeLowercase) charset += 'abcdefghijklmnopqrstuvwxyz';
+    if (includeNumbers) charset += '0123456789';
+    if (includeSymbols) charset += '!@#$%^&*()_+-=[]{}|;:,.<>?';
+
+    if (charset === '') {
+      toast.error('Выберите хотя бы один тип символов!');
+      return;
+    }
+
+    let newPassword = '';
+    for (let i = 0; i < passwordLength; i++) {
+      newPassword += charset.charAt(Math.floor(Math.random() * charset.length));
+    }
+    setPassword(newPassword);
+    toast.success('Пароль сгенерирован!');
+  };
+
+  const copyPassword = () => {
+    if (password) {
+      navigator.clipboard.writeText(password);
+      toast.success('Пароль скопирован в буфер обмена!');
+    } else {
+      toast.error('Сначала сгенерируйте пароль!');
+    }
+  };
+
+  const getPasswordStrength = (pwd: string) => {
+    if (!pwd) return { level: 0, text: '', color: '' };
+    let strength = 0;
+    if (pwd.length >= 8) strength++;
+    if (pwd.length >= 12) strength++;
+    if (pwd.length >= 16) strength++;
+    if (/[a-z]/.test(pwd) && /[A-Z]/.test(pwd)) strength++;
+    if (/[0-9]/.test(pwd)) strength++;
+    if (/[^a-zA-Z0-9]/.test(pwd)) strength++;
+
+    if (strength <= 2) return { level: 20, text: 'Слабый', color: 'bg-red-500' };
+    if (strength <= 4) return { level: 50, text: 'Средний', color: 'bg-yellow-500' };
+    if (strength <= 5) return { level: 75, text: 'Хороший', color: 'bg-blue-500' };
+    return { level: 100, text: 'Отличный', color: 'bg-green-500' };
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
       <nav className="fixed top-0 left-0 right-0 z-50 bg-slate-900/80 backdrop-blur-lg border-b border-purple-500/20">
@@ -267,48 +322,161 @@ const Index = () => {
               <p className="text-slate-300 text-lg">Ваш пароль — первая линия защиты</p>
             </div>
 
-            <Card className="p-8 bg-slate-800/50 border-purple-500/20 max-w-2xl mx-auto">
-              <div className="space-y-6">
-                <div className="flex items-center gap-3">
-                  <Icon name="Key" className="text-purple-400" size={32} />
-                  <h3 className="text-2xl font-bold text-white">Правила безопасного пароля</h3>
-                </div>
-                <div className="grid gap-4">
-                  {passwordTips.map((tip, index) => (
-                    <div key={index} className="flex items-center gap-4 p-4 rounded-lg bg-slate-700/30 hover:bg-slate-700/50 transition-all">
-                      <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center flex-shrink-0">
-                        <Icon name={tip.icon as any} className="text-white" size={20} />
-                      </div>
-                      <span className="text-slate-200">{tip.text}</span>
+            <div className="grid lg:grid-cols-2 gap-6 max-w-6xl mx-auto">
+              <Card className="p-8 bg-slate-800/50 border-purple-500/20">
+                <div className="space-y-6">
+                  <div className="flex items-center gap-3">
+                    <Icon name="Sparkles" className="text-purple-400" size={32} />
+                    <h3 className="text-2xl font-bold text-white">Генератор паролей</h3>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="space-y-3">
+                      <label className="text-sm font-semibold text-slate-300">Длина пароля: {passwordLength}</label>
+                      <Slider
+                        value={[passwordLength]}
+                        onValueChange={(value) => setPasswordLength(value[0])}
+                        min={8}
+                        max={32}
+                        step={1}
+                        className="w-full"
+                      />
                     </div>
-                  ))}
-                </div>
 
-                <div className="pt-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold text-slate-400">Пример плохого пароля:</span>
-                    <Badge variant="destructive" className="gap-1">
-                      <Icon name="X" size={14} />
-                      Слабый
-                    </Badge>
-                  </div>
-                  <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/30">
-                    <code className="text-red-400">ivan1990</code>
-                  </div>
+                    <div className="space-y-3">
+                      <label className="text-sm font-semibold text-slate-300">Включить символы:</label>
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-3">
+                          <Checkbox
+                            id="uppercase"
+                            checked={includeUppercase}
+                            onCheckedChange={(checked) => setIncludeUppercase(checked as boolean)}
+                          />
+                          <label htmlFor="uppercase" className="text-slate-300 cursor-pointer">
+                            Заглавные буквы (A-Z)
+                          </label>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <Checkbox
+                            id="lowercase"
+                            checked={includeLowercase}
+                            onCheckedChange={(checked) => setIncludeLowercase(checked as boolean)}
+                          />
+                          <label htmlFor="lowercase" className="text-slate-300 cursor-pointer">
+                            Строчные буквы (a-z)
+                          </label>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <Checkbox
+                            id="numbers"
+                            checked={includeNumbers}
+                            onCheckedChange={(checked) => setIncludeNumbers(checked as boolean)}
+                          />
+                          <label htmlFor="numbers" className="text-slate-300 cursor-pointer">
+                            Цифры (0-9)
+                          </label>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <Checkbox
+                            id="symbols"
+                            checked={includeSymbols}
+                            onCheckedChange={(checked) => setIncludeSymbols(checked as boolean)}
+                          />
+                          <label htmlFor="symbols" className="text-slate-300 cursor-pointer">
+                            Символы (!@#$%^&*)
+                          </label>
+                        </div>
+                      </div>
+                    </div>
 
-                  <div className="flex items-center justify-between pt-2">
-                    <span className="text-sm font-semibold text-slate-400">Пример хорошего пароля:</span>
-                    <Badge className="gap-1 bg-green-500">
-                      <Icon name="CheckCircle" size={14} />
-                      Надежный
-                    </Badge>
-                  </div>
-                  <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/30">
-                    <code className="text-green-400">K9$mP#7xR@2nL&5qW</code>
+                    <Button onClick={generatePassword} className="w-full gap-2" size="lg">
+                      <Icon name="RefreshCw" size={20} />
+                      Сгенерировать пароль
+                    </Button>
+
+                    {password && (
+                      <div className="space-y-3 animate-scale-in">
+                        <div className="p-4 rounded-lg bg-slate-700/50 border border-purple-500/30">
+                          <div className="flex items-center justify-between gap-3">
+                            <code className="text-purple-300 text-lg font-mono break-all">{password}</code>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={copyPassword}
+                              className="flex-shrink-0"
+                            >
+                              <Icon name="Copy" size={18} />
+                            </Button>
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-slate-400">Надежность:</span>
+                            <span className={`font-semibold ${
+                              getPasswordStrength(password).level === 100 ? 'text-green-400' :
+                              getPasswordStrength(password).level >= 75 ? 'text-blue-400' :
+                              getPasswordStrength(password).level >= 50 ? 'text-yellow-400' : 'text-red-400'
+                            }`}>
+                              {getPasswordStrength(password).text}
+                            </span>
+                          </div>
+                          <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full transition-all duration-500 ${getPasswordStrength(password).color}`}
+                              style={{ width: `${getPasswordStrength(password).level}%` }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
-              </div>
-            </Card>
+              </Card>
+
+              <Card className="p-8 bg-slate-800/50 border-purple-500/20">
+                <div className="space-y-6">
+                  <div className="flex items-center gap-3">
+                    <Icon name="Key" className="text-purple-400" size={32} />
+                    <h3 className="text-2xl font-bold text-white">Правила безопасного пароля</h3>
+                  </div>
+                  <div className="grid gap-4">
+                    {passwordTips.map((tip, index) => (
+                      <div key={index} className="flex items-center gap-4 p-4 rounded-lg bg-slate-700/30 hover:bg-slate-700/50 transition-all">
+                        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center flex-shrink-0">
+                          <Icon name={tip.icon as any} className="text-white" size={20} />
+                        </div>
+                        <span className="text-slate-200">{tip.text}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="pt-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-semibold text-slate-400">Пример плохого пароля:</span>
+                      <Badge variant="destructive" className="gap-1">
+                        <Icon name="X" size={14} />
+                        Слабый
+                      </Badge>
+                    </div>
+                    <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/30">
+                      <code className="text-red-400">ivan1990</code>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-2">
+                      <span className="text-sm font-semibold text-slate-400">Пример хорошего пароля:</span>
+                      <Badge className="gap-1 bg-green-500">
+                        <Icon name="CheckCircle" size={14} />
+                        Надежный
+                      </Badge>
+                    </div>
+                    <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/30">
+                      <code className="text-green-400">K9$mP#7xR@2nL&5qW</code>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            </div>
           </div>
         )}
 
